@@ -252,7 +252,7 @@ h1 {
 }
 
 .leaflet-marker-icon.pulsing-marker {
-    animation: marker-pulse 2s infinite;
+    animation: marker-pulse 1.5s infinite;
 }
 
 @media (max-width: 800px) {
@@ -265,31 +265,10 @@ h1 {
     }
 }
 
-#boot-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #000;
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'VT323', monospace;
-    color: #00FF00;
-    font-size: 1.5em;
-    text-shadow: 0 0 8px #00FF00;
-    opacity: 1;
-    transition: opacity 1s ease-in-out;
-}
-
-#boot-text {
-    white-space: pre;
-    text-align: left;
-}
-
 #status-panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
     border: 2px dashed #00FF00;
     padding: 10px;
     margin-bottom: 20px;

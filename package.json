@@ -1,0 +1,21 @@
+{
+  "name": "iplocator",
+  "version": "1.0.0",
+  "description": "An IP address locator application",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ip",
+    "locator",
+    "geolocation"
+  ],
+  "author": "Your Name",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0"
+  }
+} 
