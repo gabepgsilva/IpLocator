@@ -256,41 +256,33 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         initialScramble();
 
-        fetch(`https://ip-api.com/json${targetQuery}?fields=status,message,country,regionName,city,zip,lat,lon,timezone,isp,as,query,mobile,proxy,hosting`)
+        fetch(`https://ipapi.co/json${targetQuery}`)
             .then(response => response.json())
             .then(data => {
-                if (data.status === 'success') {
-                    const targetCoords = [data.lat, data.lon];
+                if (!data.error) {
+                    const targetCoords = [data.latitude, data.longitude];
                     
                     if (!originCoords) {
-                        originCoords = [data.lat, data.lon];
+                        originCoords = [data.latitude, data.longitude];
                     }
                     
-                    // Update Status Panel
-                    if (data.proxy) {
-                        statusPanel.className = 'alert';
-                        statusText.textContent = '[ALERT: PROXY/VPN DETECTED]';
-                    } else if (data.hosting) {
-                        statusPanel.className = 'notice';
-                        statusText.textContent = '[NOTICE: DATA CENTER ORIGIN]';
-                    } else {
-                        statusPanel.className = 'secure';
-                        statusText.textContent = '[STATUS: SECURE]';
-                    }
+                    // Update Status Panel - ipapi.co does not provide proxy/hosting info on the free plan
+                    statusPanel.className = 'secure';
+                    statusText.textContent = '[STATUS: SECURE]';
 
-                    // Scramble in the data
-                    scramblers.ip.setText(data.query);
+                    // Scramble in the data - using ipapi.co field names
+                    scramblers.ip.setText(data.ip);
                     scramblers.isp.setText(data.isp);
-                    scramblers.asn.setText(data.as);
+                    scramblers.asn.setText(data.asn);
                     scramblers.city.setText(data.city);
-                    scramblers.region.setText(data.regionName);
-                    scramblers.country.setText(data.country);
-                    scramblers.zip.setText(data.zip);
+                    scramblers.region.setText(data.region);
+                    scramblers.country.setText(data.country_name);
+                    scramblers.zip.setText(data.postal);
                     scramblers.timezone.setText(data.timezone);
-                    scramblers.latLon.setText(`${data.lat}, ${data.lon}`);
-                    
+                    scramblers.latLon.setText(`${data.latitude}, ${data.longitude}`);
+
                     if (!map) {
-                        map = L.map('map').setView(targetCoords, 13);
+                        map = L.map('map').setView(targetCoords, 10);
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                             subdomains: 'abcd',
@@ -338,17 +330,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         className: 'pulsing-marker'
                     });
                     targetMarker = L.marker(targetCoords, {icon: greenIcon}).addTo(map)
-                        .bindPopup(`<b>[TARGET]</b><br>${data.city}, ${data.country}`)
+                        .bindPopup(`<b>[TARGET]</b><br>${data.city}, ${data.country_name}`)
                         .openPopup();
 
                     // Use a longer timeout to ensure all animations complete
-                    setTimeout(() => {
-                        map.invalidateSize();
-                        document.getElementById('map-container').style.opacity = 1;
-                    }, 3000);
+                     setTimeout(() => {
+                         map.invalidateSize();
+                         document.getElementById('map-container').style.opacity = 1;
+                     }, 1000);
                 } else {
                     statusPanel.className = 'alert';
-                    statusText.textContent = `[ERROR: ${data.message}]`;
+                    statusText.textContent = `[ERROR: ${data.reason}]`;
                     scramblers.ip.setText('Lookup Failed');
                 }
             })
