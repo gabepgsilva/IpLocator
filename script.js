@@ -1,39 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM Elements
-    const traceForm = document.getElementById('trace-form');
-    const targetInput = document.getElementById('target-ip');
-    const locateSelfBtn = document.getElementById('locate-self');
-    const statusPanel = document.getElementById('status-panel');
-    const statusText = document.getElementById('status-text');
-
-    // Scramble Elements
-    const scramblers = {
-        ip: new TextScramble(document.getElementById('ip-val')),
-        isp: new TextScramble(document.getElementById('isp-val')),
-        asn: new TextScramble(document.getElementById('asn-val')),
-        city: new TextScramble(document.getElementById('city-val')),
-        region: new TextScramble(document.getElementById('region-val')),
-        country: new TextScramble(document.getElementById('country-val')),
-        zip: new TextScramble(document.getElementById('zip-val')),
-        timezone: new TextScramble(document.getElementById('timezone-val')),
-        latLon: new TextScramble(document.getElementById('latlon-val'))
-    };
-    
-    // Map variables
-    let map = null;
-    let originCoords = null;
-    let targetMarker = null;
-    let traceLine = null;
-
-    const greenIcon = new L.Icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    });
-
     // --- TextScramble Class ---
     class TextScramble {
         constructor(el) {
@@ -88,7 +53,42 @@ document.addEventListener('DOMContentLoaded', () => {
             return this.chars[Math.floor(Math.random() * this.chars.length)];
         }
     }
+
+    // DOM Elements
+    const traceForm = document.getElementById('trace-form');
+    const targetInput = document.getElementById('target-ip');
+    const locateSelfBtn = document.getElementById('locate-self');
+    const statusPanel = document.getElementById('status-panel');
+    const statusText = document.getElementById('status-text');
+
+    // Scramble Elements
+    const scramblers = {
+        ip: new TextScramble(document.getElementById('ip-val')),
+        isp: new TextScramble(document.getElementById('isp-val')),
+        asn: new TextScramble(document.getElementById('asn-val')),
+        city: new TextScramble(document.getElementById('city-val')),
+        region: new TextScramble(document.getElementById('region-val')),
+        country: new TextScramble(document.getElementById('country-val')),
+        zip: new TextScramble(document.getElementById('zip-val')),
+        timezone: new TextScramble(document.getElementById('timezone-val')),
+        latLon: new TextScramble(document.getElementById('latlon-val'))
+    };
     
+    // Map variables
+    let map = null;
+    let originCoords = null;
+    let targetMarker = null;
+    let traceLine = null;
+
+    const greenIcon = new L.Icon({
+        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+    });
+
     const runBootSequence = () => {
         const bootText = [
             'BOOTING...',
