@@ -447,9 +447,12 @@ path.leaflet-interactive.trace-route.finished {
   html, body {
     max-width: 100vw;
     overflow-x: hidden;
+    overflow-y: auto;
     margin: 0;
     padding: 0;
     background-size: cover;
+    height: 100dvh;
+    overscroll-behavior-y: contain;
   }
   #main-container, .container, .boot-sequence, .ip-lookup, #map-container {
     width: 100vw !important;
@@ -460,13 +463,26 @@ path.leaflet-interactive.trace-route.finished {
     margin: 0 auto;
     border-radius: 0;
   }
-  #map {
-    height: 180px !important;
-    min-height: 120px;
+  #map-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     width: 100vw !important;
     max-width: 100vw !important;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+  }
+  #map {
+    width: 90vw !important;
+    height: 90vw !important;
+    max-width: 400px;
+    max-height: 400px;
+    min-width: 120px;
+    min-height: 120px;
     margin: 0 auto;
     border-radius: 0;
+    box-sizing: border-box;
   }
   .ip-info {
     flex-direction: column;
@@ -510,7 +526,6 @@ path.leaflet-interactive.trace-route.finished {
     height: 120px !important;
     display: block;
   }
-  /* Hide or shrink decorative elements if any */
   .decorative, .sci-fi-border, .extra-bg {
     display: none !important;
   }
