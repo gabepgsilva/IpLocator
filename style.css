@@ -81,6 +81,7 @@
 html, body {
     max-width: 100vw;
     overflow-x: hidden;
+    height: 100%;
     margin: 0;
     padding: 0;
 }
@@ -92,8 +93,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     text-shadow: 0 0 8px #00FF00, 0 0 10px #00FF00;
+    overflow-y: auto;
 }
 
 body::before {
@@ -447,12 +448,14 @@ path.leaflet-interactive.trace-route.finished {
   html, body {
     max-width: 100vw;
     overflow-x: hidden;
-    overflow-y: auto;
+    height: 100%;
     margin: 0;
     padding: 0;
     background-size: cover;
-    height: 100dvh;
     overscroll-behavior-y: contain;
+  }
+  body {
+    overflow-y: auto;
   }
   #main-container, .container, .boot-sequence, .ip-lookup, #map-container {
     width: 100vw !important;
