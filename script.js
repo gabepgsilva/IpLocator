@@ -270,16 +270,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     statusPanel.className = 'secure';
                     statusText.textContent = '[STATUS: SECURE]';
 
-                    // Scramble in the data - using ipapi.co field names
-                    scramblers.ip.setText(data.ip);
-                    scramblers.isp.setText(data.isp);
-                    scramblers.asn.setText(data.asn);
-                    scramblers.city.setText(data.city);
-                    scramblers.region.setText(data.region);
-                    scramblers.country.setText(data.country_name);
-                    scramblers.zip.setText(data.postal);
-                    scramblers.timezone.setText(data.timezone);
-                    scramblers.latLon.setText(`${data.latitude}, ${data.longitude}`);
+                    // Scramble in the data - using ipapi.co field names and adding fallbacks for resilience.
+                    scramblers.ip.setText(data.ip || '');
+                    scramblers.isp.setText(data.org || ''); // Corrected field from 'isp' to 'org'
+                    scramblers.asn.setText(data.asn || '');
+                    scramblers.city.setText(data.city || '');
+                    scramblers.region.setText(data.region || '');
+                    scramblers.country.setText(data.country_name || '');
+                    scramblers.zip.setText(data.postal || '');
+                    scramblers.timezone.setText(data.timezone || '');
+                    scramblers.latLon.setText(`${data.latitude || 'N/A'}, ${data.longitude || 'N/A'}`);
 
                     if (!map) {
                         map = L.map('map').setView(targetCoords, 10);
