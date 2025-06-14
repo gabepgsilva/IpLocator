@@ -256,7 +256,11 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         initialScramble();
 
-        fetch(`https://ip-api.com/json${targetQuery}?fields=status,message,country,regionName,city,zip,lat,lon,timezone,isp,as,query,mobile,proxy,hosting`, {
+        // Use the IPINFO_TOKEN from the environment (Cloudflare Pages injects it)
+        const token = typeof IPINFO_TOKEN !== 'undefined' ? IPINFO_TOKEN : undefined;
+        const url = `https://ipinfo.io${targetQuery}?token=${token ? token : ''}`;
+
+        fetch(url, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json'
@@ -269,96 +273,92 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                if (data.status === 'success') {
-                    const targetCoords = [data.lat, data.lon];
-                    
-                    if (!originCoords) {
-                        originCoords = [data.lat, data.lon];
+                // ipinfo.io returns fields: ip, city, region, country, loc, org, postal, timezone
+                if (data.ip) {
+                    const [lat, lon] = data.loc ? data.loc.split(',').map(Number) : [null, null];
+                    const targetCoords = [lat, lon];
+
+                    if (!originCoords && lat && lon) {
+                        originCoords = [lat, lon];
                     }
-                    
-                    // Update Status Panel
-                    if (data.proxy) {
-                        statusPanel.className = 'alert';
-                        statusText.textContent = '[ALERT: PROXY/VPN DETECTED]';
-                    } else if (data.hosting) {
-                        statusPanel.className = 'notice';
-                        statusText.textContent = '[NOTICE: DATA CENTER ORIGIN]';
-                    } else {
-                        statusPanel.className = 'secure';
-                        statusText.textContent = '[STATUS: SECURE]';
-                    }
+
+                    // Update Status Panel (ipinfo.io does not provide proxy/hosting info on free tier)
+                    statusPanel.className = 'secure';
+                    statusText.textContent = '[STATUS: SECURE]';
 
                     // Scramble in the data
-                    scramblers.ip.setText(data.query);
-                    scramblers.isp.setText(data.isp);
-                    scramblers.asn.setText(data.as);
-                    scramblers.city.setText(data.city);
-                    scramblers.region.setText(data.regionName);
-                    scramblers.country.setText(data.country);
-                    scramblers.zip.setText(data.zip);
-                    scramblers.timezone.setText(data.timezone);
-                    scramblers.latLon.setText(`${data.lat}, ${data.lon}`);
-                    
-                    if (!map) {
-                        map = L.map('map').setView(targetCoords, 13);
-                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                            subdomains: 'abcd',
-                            maxZoom: 19
+                    scramblers.ip.setText(data.ip);
+                    scramblers.isp.setText(data.org || 'N/A');
+                    scramblers.asn.setText(data.org || 'N/A');
+                    scramblers.city.setText(data.city || 'N/A');
+                    scramblers.region.setText(data.region || 'N/A');
+                    scramblers.country.setText(data.country || 'N/A');
+                    scramblers.zip.setText(data.postal || 'N/A');
+                    scramblers.timezone.setText(data.timezone || 'N/A');
+                    scramblers.latLon.setText(data.loc || 'N/A');
+
+                    if (lat && lon) {
+                        if (!map) {
+                            map = L.map('map').setView(targetCoords, 13);
+                            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                                subdomains: 'abcd',
+                                maxZoom: 19
+                            }).addTo(map);
+
+                            const originIcon = new L.Icon({
+                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                                iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                            });
+                            originMarker = L.marker(originCoords, {icon: originIcon, zIndexOffset: -100}).addTo(map)
+                                .bindPopup(`<b>[ORIGIN NODE]</b>`)
+                                .openPopup();
+                        } else {
+                            map.flyTo(targetCoords, 13);
+                        }
+
+                        if (traceLine) traceLine.remove();
+                        if (targetMarker) targetMarker.remove();
+                        if (areaCircle) areaCircle.remove();
+
+                        traceLine = L.polyline([originCoords, targetCoords], {
+                            color: '#00FF00',
+                            weight: 3,
+                            className: 'trace-route'
                         }).addTo(map);
 
-                        const originIcon = new L.Icon({
-                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                        traceLine.on('animationend', () => {
+                            traceLine.getElement().classList.add('finished');
                         });
-                        originMarker = L.marker(originCoords, {icon: originIcon, zIndexOffset: -100}).addTo(map)
-                            .bindPopup(`<b>[ORIGIN NODE]</b>`)
+
+                        areaCircle = L.circle(targetCoords, {
+                            radius: 1000, // 1km radius
+                            color: '#00FF00',
+                            fillColor: '#00FF00',
+                            fillOpacity: 0.2,
+                            className: 'accuracy-circle'
+                        }).addTo(map);
+
+                        const greenIcon = new L.Icon({
+                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+                            className: 'pulsing-marker'
+                        });
+                        targetMarker = L.marker(targetCoords, {icon: greenIcon}).addTo(map)
+                            .bindPopup(`<b>[TARGET]</b><br>${data.city || ''}, ${data.country || ''}`)
                             .openPopup();
-                    } else {
-                        map.flyTo(targetCoords, 13);
+
+                        // Use a longer timeout to ensure all animations complete
+                        setTimeout(() => {
+                            map.invalidateSize();
+                            document.getElementById('map-container').style.opacity = 1;
+                        }, 3000);
                     }
-
-                    if (traceLine) traceLine.remove();
-                    if (targetMarker) targetMarker.remove();
-                    if (areaCircle) areaCircle.remove();
-
-                    traceLine = L.polyline([originCoords, targetCoords], {
-                        color: '#00FF00',
-                        weight: 3,
-                        className: 'trace-route'
-                    }).addTo(map);
-
-                    traceLine.on('animationend', () => {
-                        traceLine.getElement().classList.add('finished');
-                    });
-
-                    areaCircle = L.circle(targetCoords, {
-                        radius: 1000, // 1km radius
-                        color: '#00FF00',
-                        fillColor: '#00FF00',
-                        fillOpacity: 0.2,
-                        className: 'accuracy-circle'
-                    }).addTo(map);
-
-                    const greenIcon = new L.Icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-                        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
-                        className: 'pulsing-marker'
-                    });
-                    targetMarker = L.marker(targetCoords, {icon: greenIcon}).addTo(map)
-                        .bindPopup(`<b>[TARGET]</b><br>${data.city}, ${data.country}`)
-                        .openPopup();
-
-                    // Use a longer timeout to ensure all animations complete
-                    setTimeout(() => {
-                        map.invalidateSize();
-                        document.getElementById('map-container').style.opacity = 1;
-                    }, 3000);
                 } else {
                     statusPanel.className = 'alert';
-                    statusText.textContent = `[ERROR: ${data.message}]`;
+                    statusText.textContent = `[ERROR: Lookup Failed]`;
                     scramblers.ip.setText('Lookup Failed');
                 }
             })
