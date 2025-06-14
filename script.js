@@ -352,8 +352,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         // Use a longer timeout to ensure all animations complete
                         setTimeout(() => {
-                            map.invalidateSize();
-                            document.getElementById('map-container').style.opacity = 1;
+                            if (map) {
+                                map.invalidateSize();
+                            }
+                            const mapContainer = document.getElementById('map-container');
+                            if (mapContainer) {
+                                mapContainer.style.opacity = 1;
+                            }
                         }, 3000);
                     }
                 } else {
