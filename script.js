@@ -256,7 +256,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         initialScramble();
 
-        fetch(`https://ipapi.co/json${targetQuery}`)
+        // Switched to our own proxy worker to solve CORS issues.
+        fetch(`/api/lookup${targetQuery}`)
             .then(response => response.json())
             .then(data => {
                 if (!data.error) {
