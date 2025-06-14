@@ -1,10 +1,22 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // --- Particle Animation ---
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Particle Canvas ---
     const canvas = document.getElementById('particle-canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
     let particlesArray;
+
+    const mouse = {
+        x: null,
+        y: null,
+        radius: (canvas.height / 120) * (canvas.width / 120)
+    };
+
+    window.addEventListener('mousemove', function(event) {
+        mouse.x = event.x;
+        mouse.y = event.y;
+    });
 
     class Particle {
         constructor(x, y, directionX, directionY, size, color) {
@@ -18,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         draw() {
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
-            ctx.fillStyle = this.color;
+            ctx.fillStyle = '#00FF00';
             ctx.fill();
         }
         update() {
@@ -34,38 +46,104 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function initParticles() {
+    function init() {
         particlesArray = [];
-        const numberOfParticles = (canvas.height * canvas.width) / 9000;
+        let numberOfParticles = (canvas.height * canvas.width) / 9000;
         for (let i = 0; i < numberOfParticles; i++) {
-            const size = (Math.random() * 2) + 1;
-            const x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
-            const y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
-            const directionX = (Math.random() * .4) - .2;
-            const directionY = (Math.random() * .4) - .2;
-            const color = 'rgba(0, 255, 0, 0.2)';
+            let size = (Math.random() * 2) + 1;
+            let x = (Math.random() * ((innerWidth - size * 2) - (size * 2)) + size * 2);
+            let y = (Math.random() * ((innerHeight - size * 2) - (size * 2)) + size * 2);
+            let directionX = (Math.random() * 2) - 1;
+            let directionY = (Math.random() * 2) - 1;
+            let color = '#00FF00';
             particlesArray.push(new Particle(x, y, directionX, directionY, size, color));
         }
     }
 
-    function animateParticles() {
-        requestAnimationFrame(animateParticles);
+    function connect() {
+        let opacityValue = 1;
+        for (let a = 0; a < particlesArray.length; a++) {
+            for (let b = a; b < particlesArray.length; b++) {
+                let distance = ((particlesArray[a].x - particlesArray[b].x) * (particlesArray[a].x - particlesArray[b].x)) +
+                    ((particlesArray[a].y - particlesArray[b].y) * (particlesArray[a].y - particlesArray[b].y));
+                if (distance < (canvas.width / 7) * (canvas.height / 7)) {
+                    opacityValue = 1 - (distance / 20000);
+                    ctx.strokeStyle = `rgba(0, 255, 0, ${opacityValue})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                    ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
         ctx.clearRect(0, 0, innerWidth, innerHeight);
         for (let i = 0; i < particlesArray.length; i++) {
             particlesArray[i].update();
         }
+        connect();
     }
-
-    window.addEventListener('resize', () => {
+    
+    window.addEventListener('resize', function() {
         canvas.width = innerWidth;
         canvas.height = innerHeight;
-        initParticles();
+        mouse.radius = (canvas.height / 120) * (canvas.width / 120);
+        init();
     });
 
-    initParticles();
-    animateParticles();
+    window.addEventListener('mouseout', function() {
+        mouse.x = undefined;
+        mouse.y = undefined;
+    });
+
+    init();
+    animate();
+
+
+    // --- Boot Sequence & Main Logic ---
+    const bootScreen = document.getElementById('boot-screen');
+    const bootText = document.getElementById('boot-text');
+    const mainContainer = document.querySelector('.container');
+    const statusPanel = document.getElementById('status-panel');
+    const statusText = document.getElementById('status-text');
+    const traceForm = document.getElementById('trace-form');
+    const targetInput = document.getElementById('target-input');
+    const locateSelfBtn = document.getElementById('locate-self-btn');
+    const copyBtn = document.getElementById('copy-btn');
     
-    // --- TextScramble Class ---
+    let map = null;
+    let originCoords = null;
+    let traceLine = null;
+    let originMarker = null;
+    let targetMarker = null;
+    let areaCircle = null;
+
+    const bootSequence = [
+        { text: 'BOOTING SYSTEM KERNEL...', delay: 250 },
+        { text: 'INITIATING PARTICLE FIELD...', delay: 500 },
+        { text: 'ESTABLISHING SECURE GEO-LINK...', delay: 400 },
+        { text: 'CALIBRATING ORIGIN NODE...', delay: 700 },
+        { text: 'AWAITING COMMAND.', delay: 300 }
+    ];
+
+    async function runBootSequence() {
+        for (const line of bootSequence) {
+            bootText.innerHTML += `> ${line.text}\n`;
+            await new Promise(resolve => setTimeout(resolve, line.delay));
+        }
+        bootScreen.style.opacity = '0';
+        setTimeout(() => {
+            bootScreen.style.display = 'none';
+            mainContainer.style.display = 'block';
+            runIpLookup(); // Initial lookup for user's own IP
+        }, 1000);
+    }
+
+    // --- Text Scramble Effect ---
     class TextScramble {
         constructor(el) {
             this.el = el;
@@ -82,7 +160,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const to = newText[i] || '';
                 const start = Math.floor(Math.random() * 40);
                 const end = start + Math.floor(Math.random() * 40);
-                this.queue.push({ from, to, start, end });
+                this.queue.push({
+                    from,
+                    to,
+                    start,
+                    end
+                });
             }
             cancelAnimationFrame(this.frameRequest);
             this.frame = 0;
@@ -93,7 +176,13 @@ document.addEventListener('DOMContentLoaded', () => {
             let output = '';
             let complete = 0;
             for (let i = 0, n = this.queue.length; i < n; i++) {
-                let { from, to, start, end, char } = this.queue[i];
+                let {
+                    from,
+                    to,
+                    start,
+                    end,
+                    char
+                } = this.queue[i];
                 if (this.frame >= end) {
                     complete++;
                     output += to;
@@ -102,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         char = this.randomChar();
                         this.queue[i].char = char;
                     }
-                    output += `<span class="dud">${char}</span>`;
+                    output += `<span class="scrambling">${char}</span>`;
                 } else {
                     output += from;
                 }
@@ -120,143 +209,181 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- DOM Elements ---
-    const traceForm = document.getElementById('trace-form');
-    const targetInput = document.getElementById('target-input');
-    const locateSelfBtn = document.getElementById('locate-self-btn');
-    const copyBtn = document.getElementById('copy-btn');
-    const statusPanel = document.getElementById('status-panel');
-    const statusText = document.getElementById('status-text');
 
-    // --- Scramble Elements ---
+    // --- Main Logic ---
+    const ipSpan = document.querySelector('#ip-address span');
+    const ispSpan = document.querySelector('#isp span');
+    const asnSpan = document.querySelector('#asn span');
+    const citySpan = document.querySelector('#city span');
+    const regionSpan = document.querySelector('#region span');
+    const countrySpan = document.querySelector('#country span');
+    const zipSpan = document.querySelector('#zip span');
+    const timezoneSpan = document.querySelector('#timezone span');
+    const latLonSpan = document.querySelector('#lat-lon span');
+    
     const scramblers = {
-        ip: new TextScramble(document.querySelector('#ip-address span')),
-        isp: new TextScramble(document.querySelector('#isp span')),
-        asn: new TextScramble(document.querySelector('#asn span')),
-        city: new TextScramble(document.querySelector('#city span')),
-        region: new TextScramble(document.querySelector('#region span')),
-        country: new TextScramble(document.querySelector('#country span')),
-        zip: new TextScramble(document.querySelector('#zip span')),
-        timezone: new TextScramble(document.querySelector('#timezone span')),
-        latLon: new TextScramble(document.querySelector('#lat-lon span'))
+        ip: new TextScramble(ipSpan),
+        isp: new TextScramble(ispSpan),
+        asn: new TextScramble(asnSpan),
+        city: new TextScramble(citySpan),
+        region: new TextScramble(regionSpan),
+        country: new TextScramble(countrySpan),
+        zip: new TextScramble(zipSpan),
+        timezone: new TextScramble(timezoneSpan),
+        latLon: new TextScramble(latLonSpan)
     };
 
-    // --- Map Variables ---
-    let map = null;
-    let originCoords = null;
-    let targetMarker = null;
-    let traceLine = null;
+    let ipAddress = '';
 
-    const greenIcon = new L.Icon({
-        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-        iconSize: [25, 41],
-        iconAnchor: [12, 41],
-        popupAnchor: [1, -34],
-        shadowSize: [41, 41]
-    });
-
-    // --- Main Functions ---
-    const initialIpLookup = async () => {
-        try {
-            const response = await fetch('https://api.ipify.org?format=json');
-            if (!response.ok) throw new Error('Failed to fetch IPv4');
-            const data = await response.json();
-            runIpLookup(data.ip);
-        } catch (error) {
-            console.error("Could not fetch IPv4, falling back to default.", error);
-            runIpLookup();
-        }
+    const phrases = {
+        ip: 'Scanning...',
+        isp: 'Acquiring ISP...',
+        asn: 'Identifying ASN...',
+        city: 'Locating City...',
+        region: 'Resolving Region...',
+        country: 'Resolving Country...',
+        zip: 'Pinpointing ZIP...',
+        timezone: 'Calculating Timezone...',
+        latLon: 'Calibrating Coords...'
     };
 
     function runIpLookup(target = '') {
         const targetQuery = target ? `/${target}` : '';
-        const initialScramble = () => {
-             const phrases = {
-                ip: '...', isp: '...', asn: '...', city: '...',
-                region: '...', country: '...', zip: '...',
-                timezone: '...', latLon: '...'
-            };
+        const initialScramble = async () => {
             for (const key in phrases) {
-                scramblers[key].setText(phrases[key]);
+                await scramblers[key].setText(phrases[key]);
             }
         };
         initialScramble();
 
-        fetch(`/api/lookup${targetQuery}`)
+        fetch(`https://ip-api.com/json${targetQuery}?fields=status,message,country,regionName,city,zip,lat,lon,timezone,isp,as,query,mobile,proxy,hosting`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
             .then(response => {
-                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 return response.json();
             })
             .then(data => {
-                if (data.bogon) throw new Error('Private or invalid IP address.');
-                if (!data.loc) throw new Error('Location data not found.');
+                if (data.status === 'success') {
+                    const targetCoords = [data.lat, data.lon];
+                    
+                    if (!originCoords) {
+                        originCoords = [data.lat, data.lon];
+                    }
+                    
+                    // Update Status Panel
+                    if (data.proxy) {
+                        statusPanel.className = 'alert';
+                        statusText.textContent = '[ALERT: PROXY/VPN DETECTED]';
+                    } else if (data.hosting) {
+                        statusPanel.className = 'notice';
+                        statusText.textContent = '[NOTICE: DATA CENTER ORIGIN]';
+                    } else {
+                        statusPanel.className = 'secure';
+                        statusText.textContent = '[STATUS: SECURE]';
+                    }
 
-                const [latitude, longitude] = data.loc.split(',').map(Number);
-                const targetCoords = [latitude, longitude];
+                    // Scramble in the data
+                    scramblers.ip.setText(data.query);
+                    scramblers.isp.setText(data.isp);
+                    scramblers.asn.setText(data.as);
+                    scramblers.city.setText(data.city);
+                    scramblers.region.setText(data.regionName);
+                    scramblers.country.setText(data.country);
+                    scramblers.zip.setText(data.zip);
+                    scramblers.timezone.setText(data.timezone);
+                    scramblers.latLon.setText(`${data.lat}, ${data.lon}`);
+                    
+                    if (!map) {
+                        map = L.map('map').setView(targetCoords, 13);
+                        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                            subdomains: 'abcd',
+                            maxZoom: 19
+                        }).addTo(map);
 
-                if (!originCoords) {
-                    originCoords = [...targetCoords];
-                }
+                        const originIcon = new L.Icon({
+                            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+                        });
+                        originMarker = L.marker(originCoords, {icon: originIcon, zIndexOffset: -100}).addTo(map)
+                            .bindPopup(`<b>[ORIGIN NODE]</b>`)
+                            .openPopup();
+                    } else {
+                        map.flyTo(targetCoords, 13);
+                    }
 
-                const isSecure = !(data.privacy?.vpn || data.privacy?.proxy || data.privacy?.hosting);
-                statusPanel.className = isSecure ? 'secure' : 'insecure';
-                statusText.textContent = isSecure ? '[STATUS: SECURE]' : '[STATUS: COMPROMISED]';
+                    if (traceLine) traceLine.remove();
+                    if (targetMarker) targetMarker.remove();
+                    if (areaCircle) areaCircle.remove();
 
-                scramblers.ip.setText(data.ip || 'N/A');
-                scramblers.isp.setText(data.org || 'N/A');
-                scramblers.asn.setText(data.asn?.asn || 'N/A');
-                scramblers.city.setText(data.city || 'N/A');
-                scramblers.region.setText(data.region || 'N/A');
-                scramblers.country.setText(data.country || 'N/A');
-                scramblers.zip.setText(data.postal || 'N/A');
-                scramblers.timezone.setText(data.timezone || 'N/A');
-                scramblers.latLon.setText(data.loc || 'N/A');
-
-                if (!map) {
-                    map = L.map('map').setView(targetCoords, 13);
-                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                        attribution: '&copy; CARTO',
-                        subdomains: 'abcd',
-                        maxZoom: 19
+                    traceLine = L.polyline([originCoords, targetCoords], {
+                        color: '#00FF00',
+                        weight: 3,
+                        className: 'trace-route'
                     }).addTo(map);
-                }
-                map.flyTo(targetCoords, 13);
 
-                if (targetMarker) {
-                    targetMarker.setLatLng(targetCoords);
+                    traceLine.on('animationend', () => {
+                        traceLine.getElement().classList.add('finished');
+                    });
+
+                    areaCircle = L.circle(targetCoords, {
+                        radius: 1000, // 1km radius
+                        color: '#00FF00',
+                        fillColor: '#00FF00',
+                        fillOpacity: 0.2,
+                        className: 'accuracy-circle'
+                    }).addTo(map);
+
+                    const greenIcon = new L.Icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+                        className: 'pulsing-marker'
+                    });
+                    targetMarker = L.marker(targetCoords, {icon: greenIcon}).addTo(map)
+                        .bindPopup(`<b>[TARGET]</b><br>${data.city}, ${data.country}`)
+                        .openPopup();
+
+                    // Use a longer timeout to ensure all animations complete
+                    setTimeout(() => {
+                        map.invalidateSize();
+                        document.getElementById('map-container').style.opacity = 1;
+                    }, 3000);
                 } else {
-                    targetMarker = L.marker(targetCoords, { icon: greenIcon }).addTo(map);
+                    statusPanel.className = 'alert';
+                    statusText.textContent = `[ERROR: ${data.message}]`;
+                    scramblers.ip.setText('Lookup Failed');
                 }
-                targetMarker.bindPopup(`<b>TARGET:</b> ${data.ip}`).openPopup();
-
-                if (traceLine) map.removeLayer(traceLine);
-                traceLine = L.polyline([originCoords, targetCoords], {
-                    color: '#00ff00',
-                    weight: 2,
-                    className: 'trace-line'
-                }).addTo(map);
             })
             .catch(error => {
-                console.error("Error fetching IP data:", error);
                 statusPanel.className = 'alert';
-                statusText.textContent = `[ERROR: ${error.message}]`;
-                scramblers.ip.setText('Lookup Failed');
+                statusText.textContent = '[ERROR: CONNECTION FAILED]';
+                console.error('Error fetching IP data:', error);
+                scramblers.ip.setText('Connection Error');
             });
     }
 
-    // --- Event Listeners ---
-    traceForm.addEventListener('submit', (e) => {
+    traceForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        const target = targetInput.value.trim();
-        if (target) runIpLookup(target);
+        const target = targetInput.value;
+        if (target) {
+            runIpLookup(target);
+        }
     });
 
-    locateSelfBtn.addEventListener('click', () => {
-        initialIpLookup();
+    locateSelfBtn.addEventListener('click', function() {
+        runIpLookup();
     });
 
-    copyBtn.addEventListener('click', () => {
+    copyBtn.addEventListener('click', function() {
+        // Updated to copy all info as a dossier
         const dossier = `
         [IP ANALYSIS DOSSIER]
         STATUS: ${statusText.textContent}
@@ -270,13 +397,14 @@ document.addEventListener('DOMContentLoaded', () => {
         ZIP: ${document.querySelector('#zip span').textContent}
         TIMEZONE: ${document.querySelector('#timezone span').textContent}
         COORDS: ${document.querySelector('#lat-lon span').textContent}
-        `.trim().replace(/^\s+/gm, '');
-        navigator.clipboard.writeText(dossier).then(() => {
+        `;
+        navigator.clipboard.writeText(dossier.trim()).then(() => {
             copyBtn.textContent = '[DOSSIER COPIED]';
-            setTimeout(() => copyBtn.textContent = '[COPY DOSSIER]', 2000);
+            setTimeout(() => {
+                copyBtn.textContent = '[COPY DOSSIER]';
+            }, 2000);
         });
     });
 
-    // --- Initial Run ---
-    initialIpLookup();
-});
+    runBootSequence();
+}); 
