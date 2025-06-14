@@ -4,9 +4,18 @@
 export async function onRequest(context) {
   // Get the original request's URL to extract the target IP
   const url = new URL(context.request.url);
+  const pathSuffix = url.pathname.substring('/api/lookup'.length);
 
-  // The part of the path after '/api/lookup' will be the target IP or domain
-  const target = url.pathname.substring('/api/lookup'.length);
+  let ipToLookup;
+
+  if (pathSuffix && pathSuffix !== '/') {
+    // If there's a suffix like /8.8.8.8, use that as the target.
+    ipToLookup = pathSuffix.substring(1); // Remove the leading '/'
+  } else {
+    // If there is no suffix, it's a request for the user's own IP.
+    // Get the client's IP from the 'CF-Connecting-IP' header.
+    ipToLookup = context.request.headers.get('CF-Connecting-IP');
+  }
 
   // Get the API token from Cloudflare's environment variables
   // The user will need to set this in their Pages project settings.
@@ -17,7 +26,7 @@ export async function onRequest(context) {
   }
 
   // Construct the target API URL
-  const apiUrl = `https://ipinfo.io${target}?token=${token}`;
+  const apiUrl = `https://ipinfo.io/${ipToLookup}?token=${token}`;
 
   // Fetch the data from the real API
   const apiResponse = await fetch(apiUrl, {
