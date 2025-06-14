@@ -54,27 +54,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // DOM Elements
+    // --- DOM Elements ---
     const traceForm = document.getElementById('trace-form');
-    const targetInput = document.getElementById('target-ip');
-    const locateSelfBtn = document.getElementById('locate-self');
+    const targetInput = document.getElementById('target-input');
+    const locateSelfBtn = document.getElementById('locate-self-btn');
+    const copyBtn = document.getElementById('copy-btn');
     const statusPanel = document.getElementById('status-panel');
     const statusText = document.getElementById('status-text');
 
-    // Scramble Elements
+    // --- Scramble Elements ---
     const scramblers = {
-        ip: new TextScramble(document.getElementById('ip-val')),
-        isp: new TextScramble(document.getElementById('isp-val')),
-        asn: new TextScramble(document.getElementById('asn-val')),
-        city: new TextScramble(document.getElementById('city-val')),
-        region: new TextScramble(document.getElementById('region-val')),
-        country: new TextScramble(document.getElementById('country-val')),
-        zip: new TextScramble(document.getElementById('zip-val')),
-        timezone: new TextScramble(document.getElementById('timezone-val')),
-        latLon: new TextScramble(document.getElementById('latlon-val'))
+        ip: new TextScramble(document.querySelector('#ip-address span')),
+        isp: new TextScramble(document.querySelector('#isp span')),
+        asn: new TextScramble(document.querySelector('#asn span')),
+        city: new TextScramble(document.querySelector('#city span')),
+        region: new TextScramble(document.querySelector('#region span')),
+        country: new TextScramble(document.querySelector('#country span')),
+        zip: new TextScramble(document.querySelector('#zip span')),
+        timezone: new TextScramble(document.querySelector('#timezone span')),
+        latLon: new TextScramble(document.querySelector('#lat-lon span'))
     };
-    
-    // Map variables
+
+    // --- Map Variables ---
     let map = null;
     let originCoords = null;
     let targetMarker = null;
@@ -89,134 +90,86 @@ document.addEventListener('DOMContentLoaded', () => {
         shadowSize: [41, 41]
     });
 
-    const runBootSequence = () => {
-        const bootText = [
-            'BOOTING...',
-            'INITIALIZING INTERFACE...',
-            'CONNECTING TO SATELLITE...',
-            'ESTABLISHING CONNECTION...',
-            'TRACING IP...'
-        ];
-        let line = 0;
-        const terminal = document.getElementById('terminal-output');
-        const interval = setInterval(() => {
-            if (line < bootText.length) {
-                terminal.innerHTML += `${bootText[line]}<br>`;
-                line++;
-            } else {
-                clearInterval(interval);
-            }
-        }, 200);
-
-        setTimeout(async () => {
-            try {
-                // We will first attempt to get the user's public IPv4 address.
-                const response = await fetch('https://api.ipify.org?format=json');
-                if (!response.ok) {
-                    throw new Error(`ipify request failed: ${response.status}`);
-                }
-                const data = await response.json();
-                // If successful, we use that IPv4 for the main lookup.
-                runIpLookup(data.ip);
-            } catch (error) {
-                console.error("Could not fetch IPv4 address. Falling back to default IP.", error);
-                // If we can't get the IPv4, we fall back to the default lookup,
-                // which will use the IP seen by Cloudflare (v4 or v6).
-                runIpLookup();
-            }
-        }, 1000);
+    // --- Main Functions ---
+    const initialIpLookup = async () => {
+        try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            if (!response.ok) throw new Error('Failed to fetch IPv4');
+            const data = await response.json();
+            runIpLookup(data.ip);
+        } catch (error) {
+            console.error("Could not fetch IPv4, falling back to default.", error);
+            runIpLookup();
+        }
     };
 
     function runIpLookup(target = '') {
         const targetQuery = target ? `/${target}` : '';
-        const initialScramble = async () => {
-            const phrases = {
-                ip: '??? . ??? . ??? . ???',
-                isp: '???????? ???',
-                asn: '?????',
-                city: '??????',
-                region: '??????',
-                country: '?????',
-                zip: '?????',
-                timezone: '?????/?????',
-                latLon: '??.?????, ??.?????'
+        const initialScramble = () => {
+             const phrases = {
+                ip: '...', isp: '...', asn: '...', city: '...',
+                region: '...', country: '...', zip: '...',
+                timezone: '...', latLon: '...'
             };
             for (const key in phrases) {
-                await scramblers[key].setText(phrases[key]);
+                scramblers[key].setText(phrases[key]);
             }
         };
         initialScramble();
 
         fetch(`/api/lookup${targetQuery}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+                return response.json();
+            })
             .then(data => {
-                if (data.bogon) {
-                    throw new Error('Private or invalid IP address.');
-                }
-                if (!data.loc) {
-                    throw new Error('Location data not found in response.');
-                }
-                
+                if (data.bogon) throw new Error('Private or invalid IP address.');
+                if (!data.loc) throw new Error('Location data not found.');
+
                 const [latitude, longitude] = data.loc.split(',').map(Number);
                 const targetCoords = [latitude, longitude];
-                
+
                 if (!originCoords) {
-                    originCoords = [latitude, longitude];
+                    originCoords = [...targetCoords];
                 }
-                
+
                 const isSecure = !(data.privacy?.vpn || data.privacy?.proxy || data.privacy?.hosting);
                 statusPanel.className = isSecure ? 'secure' : 'insecure';
-                statusText.textContent = isSecure ? '[STATUS: SECURE]' : '[STATUS: INSECURE]';
+                statusText.textContent = isSecure ? '[STATUS: SECURE]' : '[STATUS: COMPROMISED]';
 
-                scramblers.ip.setText(data.ip || '');
-                scramblers.isp.setText(data.org || '');
-                scramblers.asn.setText(data.asn?.asn || '');
-                scramblers.city.setText(data.city || '');
-                scramblers.region.setText(data.region || '');
-                scramblers.country.setText(data.country || '');
-                scramblers.zip.setText(data.postal || '');
-                scramblers.timezone.setText(data.timezone || '');
+                scramblers.ip.setText(data.ip || 'N/A');
+                scramblers.isp.setText(data.org || 'N/A');
+                scramblers.asn.setText(data.asn?.asn || 'N/A');
+                scramblers.city.setText(data.city || 'N/A');
+                scramblers.region.setText(data.region || 'N/A');
+                scramblers.country.setText(data.country || 'N/A');
+                scramblers.zip.setText(data.postal || 'N/A');
+                scramblers.timezone.setText(data.timezone || 'N/A');
                 scramblers.latLon.setText(data.loc || 'N/A');
 
                 if (!map) {
-                    map = L.map('map-container', {
-                        center: targetCoords,
-                        zoom: 13,
-                        zoomControl: false,
-                        attributionControl: false
-                    });
+                    map = L.map('map').setView(targetCoords, 13);
                     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                        attribution: '&copy; CARTO',
                         subdomains: 'abcd',
                         maxZoom: 19
                     }).addTo(map);
-
-                    setTimeout(() => {
-                        map.invalidateSize();
-                        document.getElementById('map-container').style.opacity = 1;
-                    }, 3000); 
                 }
-                
                 map.flyTo(targetCoords, 13);
-                
+
                 if (targetMarker) {
                     targetMarker.setLatLng(targetCoords);
                 } else {
-                    targetMarker = L.marker(targetCoords, {icon: greenIcon}).addTo(map);
+                    targetMarker = L.marker(targetCoords, { icon: greenIcon }).addTo(map);
                 }
-                targetMarker.bindPopup(`<b>[TARGET]</b><br>${data.city}, ${data.country}`).openPopup();
-                
-                if (traceLine) {
-                    map.removeLayer(traceLine);
-                }
-                
+                targetMarker.bindPopup(`<b>TARGET:</b> ${data.ip}`).openPopup();
+
+                if (traceLine) map.removeLayer(traceLine);
                 traceLine = L.polyline([originCoords, targetCoords], {
                     color: '#00ff00',
                     weight: 2,
-                    opacity: 0.7,
                     className: 'trace-line'
                 }).addTo(map);
-
             })
             .catch(error => {
                 console.error("Error fetching IP data:", error);
@@ -227,17 +180,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Event Listeners ---
-    runBootSequence();
-
-    traceForm.addEventListener('submit', function(e) {
+    traceForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const target = targetInput.value;
-        if (target) {
-            runIpLookup(target);
-        }
+        const target = targetInput.value.trim();
+        if (target) runIpLookup(target);
     });
 
-    locateSelfBtn.addEventListener('click', function() {
-        runIpLookup();
+    locateSelfBtn.addEventListener('click', () => {
+        initialIpLookup();
     });
-}); 
+
+    copyBtn.addEventListener('click', () => {
+        const dossier = `
+        [IP ANALYSIS DOSSIER]
+        STATUS: ${statusText.textContent}
+        ---------------------------------
+        TARGET: ${document.querySelector('#ip-address span').textContent}
+        ISP: ${document.querySelector('#isp span').textContent}
+        ASN: ${document.querySelector('#asn span').textContent}
+        CITY: ${document.querySelector('#city span').textContent}
+        REGION: ${document.querySelector('#region span').textContent}
+        COUNTRY: ${document.querySelector('#country span').textContent}
+        ZIP: ${document.querySelector('#zip span').textContent}
+        TIMEZONE: ${document.querySelector('#timezone span').textContent}
+        COORDS: ${document.querySelector('#lat-lon span').textContent}
+        `.trim().replace(/^\s+/gm, '');
+        navigator.clipboard.writeText(dossier).then(() => {
+            copyBtn.textContent = '[DOSSIER COPIED]';
+            setTimeout(() => copyBtn.textContent = '[COPY DOSSIER]', 2000);
+        });
+    });
+
+    // --- Initial Run ---
+    initialIpLookup();
+});
