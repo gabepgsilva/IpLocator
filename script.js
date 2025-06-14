@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         initialScramble();
 
-        fetch(`http://ip-api.com/json${targetQuery}?fields=status,message,country,regionName,city,zip,lat,lon,timezone,isp,as,query,mobile,proxy,hosting`)
+        fetch(`https://ipapi.co/${ipAddress}/json/`)
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
