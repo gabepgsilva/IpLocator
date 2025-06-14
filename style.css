@@ -435,4 +435,45 @@ path.leaflet-interactive.trace-route.finished {
 
 .accuracy-circle {
     animation: area-pulse 3s infinite ease-in-out;
+}
+
+/* Responsive styles for mobile */
+@media (max-width: 600px) {
+  body {
+    font-size: 16px;
+    padding: 0 5px;
+  }
+  h1, h2, h3 {
+    font-size: 1.2em;
+  }
+  #main-container, .container, .boot-sequence, .ip-lookup, #map-container {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    box-sizing: border-box;
+    padding: 0.5em 0.2em;
+  }
+  #map {
+    height: 250px !important;
+    min-height: 150px;
+    width: 100% !important;
+  }
+  .ip-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5em;
+  }
+  .ip-info > div {
+    width: 100%;
+    word-break: break-all;
+  }
+  .input-group, .ip-lookup input, .ip-lookup button {
+    width: 100% !important;
+    font-size: 1em;
+    margin-bottom: 0.5em;
+  }
+  .boot-sequence {
+    font-size: 1em;
+    padding: 0.5em;
+  }
 } 
