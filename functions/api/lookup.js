@@ -1,15 +1,23 @@
-// This Cloudflare Pages Function will act as a proxy to the ipapi.co API
-// to solve the CORS issue.
+// This Cloudflare Pages Function will act as a proxy to the ipinfo.io API
+// to solve CORS issues and securely add an API key.
 
 export async function onRequest(context) {
   // Get the original request's URL to extract the target IP
   const url = new URL(context.request.url);
 
-  // The part of the path after '/api/lookup' will be the target IP or domain (e.g., /8.8.8.8)
+  // The part of the path after '/api/lookup' will be the target IP or domain
   const target = url.pathname.substring('/api/lookup'.length);
 
+  // Get the API token from Cloudflare's environment variables
+  // The user will need to set this in their Pages project settings.
+  const token = context.env.IPINFO_TOKEN;
+
+  if (!token) {
+    return new Response('API token is not configured', { status: 500 });
+  }
+
   // Construct the target API URL
-  const apiUrl = `https://ipapi.co/json${target}`;
+  const apiUrl = `https://ipinfo.io${target}?token=${token}`;
 
   // Fetch the data from the real API
   const apiResponse = await fetch(apiUrl, {
