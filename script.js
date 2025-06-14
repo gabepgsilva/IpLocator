@@ -352,6 +352,8 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    runBootSequence();
+
     traceForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const target = targetInput.value;
@@ -387,6 +389,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 2000);
         });
     });
-
-    runBootSequence();
 }); 
