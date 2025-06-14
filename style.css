@@ -496,9 +496,11 @@ path.leaflet-interactive.trace-route.finished {
         max-height: 400px;
         min-width: 120px;
         min-height: 120px;
+        aspect-ratio: 1 / 1;
         margin: 0 auto;
         border-radius: 0;
         box-sizing: border-box;
+        display: block;
     }
     .ip-info {
         flex-direction: column;
