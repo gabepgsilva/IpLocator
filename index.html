@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Locator</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="boot-screen">
+        <div id="boot-text"></div>
+    </div>
+    <canvas id="particle-canvas"></canvas>
+    <div class="container">
+        <div id="status-panel">
+            <span id="status-text">[STATUS: ANALYZING...]</span>
+        </div>
+        <h1>[IP LOCATOR]</h1>
+        <div id="console">
+            <form id="trace-form">
+                <input type="text" id="target-input" placeholder="[ENTER TARGET IP OR DOMAIN...]" autocomplete="off">
+                <button type="submit" id="trace-btn">[INITIATE TRACE]</button>
+            </form>
+        </div>
+        <div class="main-content">
+            <div class="info-grid">
+                <div class="info-item" id="ip-address"><strong>TARGET:</strong> <span>...</span></div>
+                <div class="info-item" id="isp"><strong>ISP:</strong> <span>...</span></div>
+                <div class="info-item" id="asn"><strong>ASN:</strong> <span>...</span></div>
+                <div class="info-item" id="city"><strong>City:</strong> <span>...</span></div>
+                <div class="info-item" id="region"><strong>Region:</strong> <span>...</span></div>
+                <div class="info-item" id="country"><strong>Country:</strong> <span>...</span></div>
+                <div class="info-item" id="zip"><strong>ZIP:</strong> <span>...</span></div>
+                <div class="info-item" id="timezone"><strong>Timezone:</strong> <span>...</span></div>
+                <div class="info-item" id="lat-lon"><strong>Coords:</strong> <span>...</span></div>
+            </div>
+            <div id="map"></div>
+        </div>
+        <div class="controls">
+            <button id="locate-self-btn">[//ORIGIN]</button>
+            <button id="copy-btn">[COPY DOSSIER]</button>
+        </div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+    <script src="script.js"></script>
+</body>
+</html> 
